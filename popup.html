@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Font Changer</title>
   <link rel="stylesheet" type="text/css" href="style.css">
 </head>
+
 <body>
   <h1>Font Settings</h1>
-  
+
   <label for="fontSelector">Select a font:</label>
   <select id="fontSelector">
     <!-- Populate with installed fonts -->
@@ -15,16 +17,15 @@
     <button id="applyFontButton" class="apply-button">Apply Font</button>
     <button id="resetFontButton" class="reset-button">Reset Font</button>
   </div>
-  
-  <label for="fontSizeSelector">Select font size:</label>
+
+  <label for="fontSizeSelector">Adjust font size (relative):</label>
   <select id="fontSizeSelector">
-    <option value="12px">12px</option>
-    <option value="14px">14px</option>
-    <option value="16px">16px</option>
-    <option value="18px">18px</option>
-    <option value="20px">20px</option>
-    <option value="22px">22px</option>
-    <option value="24px">24px</option>
+    <option value="2">+2px</option>
+    <option value="4">+4px</option>
+    <option value="6">+6px</option>
+    <option value="8">+8px</option>
+    <option value="10">+10px</option>
+    <option value="12">+12px</option>
   </select>
   <div class="button-container">
     <button id="applyFontSizeButton" class="apply-button">Apply Font Size</button>
@@ -33,9 +34,9 @@
 
   <label for="scalingSelector">Select scaling:</label>
   <select id="scalingSelector">
-    <option value="1.0">100%</option>
-    <option value="1.1">110%</option>
     <option value="1.2">120%</option>
+    <option value="1.1">110%</option>
+    <option value="1.0">100%</option>
     <option value="0.9">90%</option>
     <option value="0.8">80%</option>
   </select>
@@ -49,4 +50,5 @@
 
   <script src="popup.js"></script>
 </body>
+
 </html>

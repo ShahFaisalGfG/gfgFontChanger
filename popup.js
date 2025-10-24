@@ -1,14 +1,14 @@
-document.addEventListener('DOMContentLoaded', function () {
-  const fontSelector = document.getElementById('fontSelector');
-  const fontSizeSelector = document.getElementById('fontSizeSelector');
-  const scalingSelector = document.getElementById('scalingSelector');
-  const applyFontButton = document.getElementById('applyFontButton');
-  const applyFontSizeButton = document.getElementById('applyFontSizeButton');
-  const applyScalingButton = document.getElementById('applyScalingButton');
-  const resetFontButton = document.getElementById('resetFontButton');
-  const resetFontSizeButton = document.getElementById('resetFontSizeButton');
-  const resetScalingButton = document.getElementById('resetScalingButton');
-  const fontSettingsTextarea = document.getElementById('fontSettings');
+document.addEventListener("DOMContentLoaded", function () {
+  const fontSelector = document.getElementById("fontSelector");
+  const fontSizeSelector = document.getElementById("fontSizeSelector");
+  const scalingSelector = document.getElementById("scalingSelector");
+  const applyFontButton = document.getElementById("applyFontButton");
+  const applyFontSizeButton = document.getElementById("applyFontSizeButton");
+  const applyScalingButton = document.getElementById("applyScalingButton");
+  const resetFontButton = document.getElementById("resetFontButton");
+  const resetFontSizeButton = document.getElementById("resetFontSizeButton");
+  const resetScalingButton = document.getElementById("resetScalingButton");
+  const fontSettingsTextarea = document.getElementById("fontSettings");
 
   // Load the font settings from Chrome storage when the extension is loaded
   loadFontSettingsFromStorage();
@@ -16,14 +16,14 @@ document.addEventListener('DOMContentLoaded', function () {
   // Populate the font selector with available fonts
   chrome.fontSettings.getFontList(function (fonts) {
     for (let i = 0; i < fonts.length; i++) {
-      const option = document.createElement('option');
+      const option = document.createElement("option");
       option.text = fonts[i].displayName;
       option.value = fonts[i].fontId;
       fontSelector.appendChild(option);
     }
   });
 
-  applyFontButton.addEventListener('click', function () {
+  applyFontButton.addEventListener("click", function () {
     const selectedFont = fontSelector.value;
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       const activeTab = tabs[0];
@@ -34,8 +34,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  applyFontSizeButton.addEventListener('click', function () {
-    const selectedFontSize = fontSizeSelector.value;
+  applyFontSizeButton.addEventListener("click", function () {
+    // selected value is an integer delta in pixels (e.g. "2" for +2px)
+    const selectedFontSize = parseInt(fontSizeSelector.value, 10);
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       const activeTab = tabs[0];
       const domain = new URL(activeTab.url).hostname;
@@ -45,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  applyScalingButton.addEventListener('click', function () {
+  applyScalingButton.addEventListener("click", function () {
     const scalingFactor = scalingSelector.value;
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       const activeTab = tabs[0];
@@ -56,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  resetFontButton.addEventListener('click', function () {
+  resetFontButton.addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       const activeTab = tabs[0];
       const domain = new URL(activeTab.url).hostname;
@@ -65,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  resetFontSizeButton.addEventListener('click', function () {
+  resetFontSizeButton.addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       const activeTab = tabs[0];
       const domain = new URL(activeTab.url).hostname;
@@ -74,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  resetScalingButton.addEventListener('click', function () {
+  resetScalingButton.addEventListener("click", function () {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       const activeTab = tabs[0];
       const domain = new URL(activeTab.url).hostname;
@@ -87,11 +88,11 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.scripting.executeScript({
       target: { tabId: tabId },
       function: () => {
-        const customFontStyle = document.getElementById('customFontStyle');
+        const customFontStyle = document.getElementById("customFontStyle");
         if (customFontStyle) {
           customFontStyle.remove();
         }
-      }
+      },
     });
   }
 
@@ -99,11 +100,16 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.scripting.executeScript({
       target: { tabId: tabId },
       function: () => {
-        const customFontSizeStyle = document.getElementById('customFontSizeStyle');
-        if (customFontSizeStyle) {
-          customFontSizeStyle.remove();
-        }
-      }
+        // Restore original font sizes stored in data attribute
+        const els = document.querySelectorAll("[data-gfg-original-font-size]");
+        els.forEach((el) => {
+          const original = el.getAttribute("data-gfg-original-font-size");
+          if (original !== null) {
+            el.style.fontSize = original || "";
+            el.removeAttribute("data-gfg-original-font-size");
+          }
+        });
+      },
     });
   }
 
@@ -111,53 +117,58 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.scripting.executeScript({
       target: { tabId: tabId },
       function: () => {
-        const customScalingStyle = document.getElementById('customScalingStyle');
+        const customScalingStyle =
+          document.getElementById("customScalingStyle");
         if (customScalingStyle) {
           customScalingStyle.remove();
         }
-      }
+      },
     });
   }
 
   function saveFontSettingsToStorage(domain, font) {
-    chrome.storage.sync.get(['fontSettings'], function (result) {
+    chrome.storage.sync.get(["fontSettings"], function (result) {
       const fontSettings = result.fontSettings || {};
       fontSettings[domain] = font;
       chrome.storage.sync.set({ fontSettings }, function () {
-        console.log('Font settings saved to Chrome storage.');
+        console.log("Font settings saved to Chrome storage.");
       });
     });
   }
 
   function saveFontSizeSettingsToStorage(domain, fontSize) {
-    chrome.storage.sync.get(['fontSizeSettings'], function (result) {
+    // store numeric delta (px) for the domain
+    chrome.storage.sync.get(["fontSizeSettings"], function (result) {
       const fontSizeSettings = result.fontSizeSettings || {};
-      fontSizeSettings[domain] = fontSize;
+      fontSizeSettings[domain] = Number(fontSize);
       chrome.storage.sync.set({ fontSizeSettings }, function () {
-        console.log('Font size settings saved to Chrome storage.');
+        console.log("Font size settings saved to Chrome storage.");
       });
     });
   }
 
   function saveScalingSettingsToStorage(domain, scalingFactor) {
-    chrome.storage.sync.get(['scalingSettings'], function (result) {
+    chrome.storage.sync.get(["scalingSettings"], function (result) {
       const scalingSettings = result.scalingSettings || {};
       scalingSettings[domain] = scalingFactor;
       chrome.storage.sync.set({ scalingSettings }, function () {
-        console.log('Scaling settings saved to Chrome storage.');
+        console.log("Scaling settings saved to Chrome storage.");
       });
     });
   }
 
   function loadFontSettingsFromStorage() {
-    chrome.storage.sync.get(['fontSettings', 'fontSizeSettings', 'scalingSettings'], function (result) {
-      const fontSettings = result.fontSettings || {};
-      const fontSizeSettings = result.fontSizeSettings || {};
-      const scalingSettings = result.scalingSettings || {};
-      displayFontSettingsInTextarea(fontSettings);
-      displayFontSizeSettingsInTextarea(fontSizeSettings);
-      displayScalingSettingsInTextarea(scalingSettings);
-    });
+    chrome.storage.sync.get(
+      ["fontSettings", "fontSizeSettings", "scalingSettings"],
+      function (result) {
+        const fontSettings = result.fontSettings || {};
+        const fontSizeSettings = result.fontSizeSettings || {};
+        const scalingSettings = result.scalingSettings || {};
+        displayFontSettingsInTextarea(fontSettings);
+        displayFontSizeSettingsInTextarea(fontSizeSettings);
+        displayScalingSettingsInTextarea(scalingSettings);
+      }
+    );
   }
 
   function displayFontSettings(domain, font) {
@@ -165,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function displayFontSizeSettings(domain, fontSize) {
-    fontSettingsTextarea.value += `Domain: ${domain}, Font Size: ${fontSize}\n`;
+    fontSettingsTextarea.value += `Domain: ${domain}, Font Size delta: +${fontSize}px\n`;
   }
 
   function displayScalingSettings(domain, scalingFactor) {
@@ -173,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function displayFontSettingsInTextarea(fontSettings) {
-    fontSettingsTextarea.value = '';
+    fontSettingsTextarea.value = "";
     for (const domain in fontSettings) {
       const font = fontSettings[domain];
       displayFontSettings(domain, font);
@@ -195,36 +206,36 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function removeFontSettingsFromStorage(domain) {
-    chrome.storage.sync.get(['fontSettings'], function (result) {
+    chrome.storage.sync.get(["fontSettings"], function (result) {
       const fontSettings = result.fontSettings || {};
       if (fontSettings.hasOwnProperty(domain)) {
         delete fontSettings[domain];
         chrome.storage.sync.set({ fontSettings }, function () {
-          console.log('Font settings removed from Chrome storage.');
+          console.log("Font settings removed from Chrome storage.");
         });
       }
     });
   }
 
   function removeFontSizeSettingsFromStorage(domain) {
-    chrome.storage.sync.get(['fontSizeSettings'], function (result) {
+    chrome.storage.sync.get(["fontSizeSettings"], function (result) {
       const fontSizeSettings = result.fontSizeSettings || {};
       if (fontSizeSettings.hasOwnProperty(domain)) {
         delete fontSizeSettings[domain];
         chrome.storage.sync.set({ fontSizeSettings }, function () {
-          console.log('Font size settings removed from Chrome storage.');
+          console.log("Font size settings removed from Chrome storage.");
         });
       }
     });
   }
 
   function removeScalingSettingsFromStorage(domain) {
-    chrome.storage.sync.get(['scalingSettings'], function (result) {
+    chrome.storage.sync.get(["scalingSettings"], function (result) {
       const scalingSettings = result.scalingSettings || {};
       if (scalingSettings.hasOwnProperty(domain)) {
         delete scalingSettings[domain];
         chrome.storage.sync.set({ scalingSettings }, function () {
-          console.log('Scaling settings removed from Chrome storage.');
+          console.log("Scaling settings removed from Chrome storage.");
         });
       }
     });
@@ -235,8 +246,8 @@ document.addEventListener('DOMContentLoaded', function () {
       chrome.scripting.executeScript({
         target: { tabId: tabId },
         function: (font) => {
-          const style = document.createElement('style');
-          style.id = 'customFontStyle';
+          const style = document.createElement("style");
+          style.id = "customFontStyle";
           style.innerHTML = `* { font-family: ${font} !important; }`;
           document.head.appendChild(style);
         },
@@ -246,14 +257,31 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function applyFontSizeToTab(tabId, fontSize) {
-    if (fontSize) {
+    // fontSize is a numeric delta in px (e.g. 2 means +2px)
+    if (typeof fontSize === "number" && !isNaN(fontSize) && fontSize !== 0) {
       chrome.scripting.executeScript({
         target: { tabId: tabId },
-        function: (fontSize) => {
-          const style = document.createElement('style');
-          style.id = 'customFontSizeStyle';
-          style.innerHTML = `* { font-size: ${fontSize} !important; }`;
-          document.head.appendChild(style);
+        func: (delta) => {
+          // Iterate all elements and increase computed font-size by delta px.
+          const els = document.querySelectorAll("*");
+          els.forEach((el) => {
+            try {
+              // Save original computed font-size if not already saved
+              if (!el.hasAttribute("data-gfg-original-font-size")) {
+                const comp = window.getComputedStyle(el).fontSize || "";
+                el.setAttribute("data-gfg-original-font-size", comp);
+              }
+              const compSize = window.getComputedStyle(el).fontSize;
+              if (compSize) {
+                const current = parseFloat(compSize);
+                if (!isNaN(current)) {
+                  el.style.fontSize = current + delta + "px";
+                }
+              }
+            } catch (e) {
+              // ignore nodes we can't read or set (like svg etc.)
+            }
+          });
         },
         args: [fontSize],
       });
@@ -265,8 +293,8 @@ document.addEventListener('DOMContentLoaded', function () {
       chrome.scripting.executeScript({
         target: { tabId: tabId },
         function: (scalingFactor) => {
-          const style = document.createElement('style');
-          style.id = 'customScalingStyle';
+          const style = document.createElement("style");
+          style.id = "customScalingStyle";
           style.innerHTML = `html { transform: scale(${scalingFactor}); transform-origin: 0 0; }`;
           document.head.appendChild(style);
         },
@@ -289,9 +317,13 @@ document.addEventListener('DOMContentLoaded', function () {
   function applyFontSizeToTabsWithDomain(domain, fontSize) {
     chrome.tabs.query({}, function (tabs) {
       for (const tab of tabs) {
-        const tabDomain = new URL(tab.url).hostname;
-        if (tabDomain === domain) {
-          applyFontSizeToTab(tab.id, fontSize);
+        try {
+          const tabDomain = new URL(tab.url).hostname;
+          if (tabDomain === domain) {
+            applyFontSizeToTab(tab.id, fontSize);
+          }
+        } catch (e) {
+          // ignore tabs without valid URL (chrome://, etc.)
         }
       }
     });
