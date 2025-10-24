@@ -18,15 +18,12 @@
     <button id="resetFontButton" class="reset-button">Reset Font</button>
   </div>
 
-  <label for="fontSizeSelector">Adjust font size (relative):</label>
-  <select id="fontSizeSelector">
-    <option value="2">+2px</option>
-    <option value="4">+4px</option>
-    <option value="6">+6px</option>
-    <option value="8">+8px</option>
-    <option value="10">+10px</option>
-    <option value="12">+12px</option>
-  </select>
+  <label for="fontSizeInput">Adjust font size (relative):</label>
+  <div class="font-size-control">
+    <button id="decreaseFontSizeButton" class="small-button">-</button>
+    <input id="fontSizeInput" type="number" value="0" min="-5" max="5" step="1" />
+    <button id="increaseFontSizeButton" class="small-button">+</button>
+  </div>
   <div class="button-container">
     <button id="applyFontSizeButton" class="apply-button">Apply Font Size</button>
     <button id="resetFontSizeButton" class="reset-button">Reset Font Size</button>

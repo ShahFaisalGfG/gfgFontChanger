@@ -4,7 +4,7 @@ body {
   background-color: #f0f0f0; /* Light gray background */
   color: #000;
   border-radius: 8px; /* Slightly rounded corners */
-  font-family: 'Segoe UI', sans-serif; /* Use Windows 11 font */
+  font-family: "Segoe UI", sans-serif; /* Use Windows 11 font */
 }
 
 select {
@@ -14,7 +14,7 @@ select {
   background-color: #e0e0e0; /* Light gray background for select */
   border: 1px solid #d1d1d1; /* Light border */
   border-radius: 5px;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: "Segoe UI", sans-serif;
 }
 
 .button-container {
@@ -24,7 +24,8 @@ select {
   margin-top: 5px; /* Add some margin between buttons and form elements */
 }
 
-.apply-button, .reset-button {
+.apply-button,
+.reset-button {
   flex: 1;
   padding: 10px;
   margin-top: 10px;
@@ -34,15 +35,15 @@ select {
   cursor: pointer;
   transition: background-color 0.3s ease;
   border-radius: 5px;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: "Segoe UI", sans-serif;
 }
 
-.apply-button{
+.apply-button {
   margin-bottom: 10px;
   margin-right: 3px;
 }
 
-.reset-button{
+.reset-button {
   margin-bottom: 10px;
   margin-left: 3px;
 }
@@ -60,7 +61,7 @@ select {
   color: #000; /* Black text */
   border: 1px solid #ccc; /* Light gray border */
   border-radius: 5px;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: "Segoe UI", sans-serif;
 }
 
 .reset-button:hover {
@@ -113,6 +114,69 @@ select {
     background-color: #333;
     color: white;
     border-radius: 5px;
-    margin-top:5px;
+    margin-top: 5px;
+  }
+}
+
+/* Font-size control: small +/- buttons with centered numeric input */
+.font-size-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  text-align: center;
+  justify-content: space-between;
+}
+
+#fontSizeInput {
+  flex: 1 1 0;
+  min-width: 0; /* allow it to shrink/grow inside the flex container */
+  width: 100% !important;
+}
+
+.font-size-control .small-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background-color: #e0e0e0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.font-size-control .small-button:hover {
+  background-color: #d1d1d1;
+}
+
+#fontSizeInput {
+  width: 62px;
+  padding: 6px 8px;
+  text-align: center;
+  border: 1px solid #d1d1d1;
+  border-radius: 6px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Dark mode adjustments for the font-size control */
+@media (prefers-color-scheme: dark) {
+  .font-size-control .small-button {
+    background-color: #333;
+    border: 1px solid #444;
+    color: #fff;
+  }
+
+  .font-size-control .small-button:hover {
+    background-color: #444;
+  }
+
+  #fontSizeInput {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #444;
   }
 }

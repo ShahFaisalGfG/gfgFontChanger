@@ -1,55 +1,73 @@
-function applyFontToTab(tabId, domain) {
-  chrome.storage.sync.get(
-    ["fontSettings", "fontSizeSettings"],
-    function (result) {
-      const fontSettings = result.fontSettings || {};
-      const fontSizeSettings = result.fontSizeSettings || {};
+function applySettingsForTab(tabId, domain) {
+  chrome.storage.sync.get(["settingsByDomain"], function (result) {
+    const byDomain = result.settingsByDomain || {};
+    const cfg = byDomain[domain] || {};
 
-      if (fontSettings.hasOwnProperty(domain)) {
-        const selectedFont = fontSettings[domain];
+    // apply font
+    if (cfg.font) {
+      chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        func: (font) => {
+          const style = document.createElement("style");
+          style.id = "customFontStyle";
+          style.innerHTML = `* { font-family: '${font}' !important; }`;
+          document.head.appendChild(style);
+        },
+        args: [cfg.font],
+      });
+    }
+
+    // apply font size delta
+    if (typeof cfg.fontSize !== "undefined") {
+      const selectedFontSize = Number(cfg.fontSize);
+      if (!isNaN(selectedFontSize) && selectedFontSize !== 0) {
         chrome.scripting.executeScript({
           target: { tabId: tabId },
-          func: (font) => {
-            const style = document.createElement("style");
-            style.id = "customFontStyle";
-            style.innerHTML = `* { font-family: ${font} !important; }`;
-            document.head.appendChild(style);
+          func: (delta) => {
+            const els = document.querySelectorAll("*");
+            els.forEach((el) => {
+              try {
+                // namespaced attribute to avoid collisions with page
+                const dataAttr = "data-gfgfc-original-font-size";
+                let original = el.getAttribute(dataAttr);
+                if (!original) {
+                  // store the computed original size once
+                  const comp = window.getComputedStyle(el).fontSize || "";
+                  el.setAttribute(dataAttr, comp);
+                  original = comp;
+                }
+                // Use the stored original as the baseline so applying is idempotent
+                const origValue = parseFloat(original);
+                if (!isNaN(origValue)) {
+                  el.style.fontSize = origValue + delta + "px";
+                }
+              } catch (e) {
+                // ignore errors on exotic elements
+              }
+            });
           },
-          args: [selectedFont],
+          args: [selectedFontSize],
         });
       }
+    }
 
-      if (fontSizeSettings.hasOwnProperty(domain)) {
-        const selectedFontSize = Number(fontSizeSettings[domain]);
-        if (!isNaN(selectedFontSize) && selectedFontSize !== 0) {
-          chrome.scripting.executeScript({
-            target: { tabId: tabId },
-            func: (delta) => {
-              const els = document.querySelectorAll("*");
-              els.forEach((el) => {
-                try {
-                  if (!el.hasAttribute("data-gfg-original-font-size")) {
-                    const comp = window.getComputedStyle(el).fontSize || "";
-                    el.setAttribute("data-gfg-original-font-size", comp);
-                  }
-                  const compSize = window.getComputedStyle(el).fontSize;
-                  if (compSize) {
-                    const current = parseFloat(compSize);
-                    if (!isNaN(current)) {
-                      el.style.fontSize = current + delta + "px";
-                    }
-                  }
-                } catch (e) {
-                  // ignore
-                }
-              });
-            },
-            args: [selectedFontSize],
-          });
-        }
+    // apply scaling
+    if (typeof cfg.scaling !== "undefined") {
+      const scalingValue = Number(cfg.scaling);
+      if (!isNaN(scalingValue) && scalingValue !== 1) {
+        chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          func: (scale) => {
+            const style = document.createElement("style");
+            style.id = "customScalingStyle";
+            style.innerHTML = `html { transform: scale(${scale}); transform-origin: 0 0; }`;
+            document.head.appendChild(style);
+          },
+          args: [scalingValue],
+        });
       }
     }
-  );
+  });
 }
 
 function resetFontOnTab(tabId) {
@@ -68,21 +86,33 @@ function resetFontSizeOnTab(tabId) {
   chrome.scripting.executeScript({
     target: { tabId: tabId },
     func: () => {
-      const els = document.querySelectorAll("[data-gfg-original-font-size]");
+      const els = document.querySelectorAll("[data-gfgfc-original-font-size]");
       els.forEach((el) => {
-        const original = el.getAttribute("data-gfg-original-font-size");
+        const original = el.getAttribute("data-gfgfc-original-font-size");
         if (original !== null) {
           el.style.fontSize = original || "";
-          el.removeAttribute("data-gfg-original-font-size");
+          el.removeAttribute("data-gfgfc-original-font-size");
         }
       });
     },
   });
 }
 
+function resetScalingOnTab(tabId) {
+  chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    func: () => {
+      const customScalingStyle = document.getElementById("customScalingStyle");
+      if (customScalingStyle) {
+        customScalingStyle.remove();
+      }
+    },
+  });
+}
+
 chrome.webNavigation.onCompleted.addListener(function (details) {
   const domain = new URL(details.url).hostname;
-  applyFontToTab(details.tabId, domain);
+  applySettingsForTab(details.tabId, domain);
 });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -90,5 +120,24 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     resetFontOnTab(request.tabId);
   } else if (request.action === "resetFontSizeOnTab") {
     resetFontSizeOnTab(request.tabId);
+  } else if (request.action === "resetScalingOnTab") {
+    resetScalingOnTab(request.tabId);
+  } else if (request.action === "applySettingsForDomain") {
+    // apply stored settings to all open tabs for that domain
+    const domain = request.domain;
+    if (domain) {
+      chrome.tabs.query({}, function (tabs) {
+        for (const tab of tabs) {
+          try {
+            const tabDomain = new URL(tab.url).hostname;
+            if (tabDomain === domain) {
+              applySettingsForTab(tab.id, domain);
+            }
+          } catch (e) {
+            // ignore invalid urls
+          }
+        }
+      });
+    }
   }
 });
