@@ -17,54 +17,67 @@ function applySettingsForTab(tabId, domain) {
       });
     }
 
-    // apply font size delta
+    // apply font size delta (including zero)
     if (typeof cfg.fontSize !== "undefined") {
       const selectedFontSize = Number(cfg.fontSize);
-      if (!isNaN(selectedFontSize) && selectedFontSize !== 0) {
-        chrome.scripting.executeScript({
-          target: { tabId: tabId },
-          func: (delta) => {
-            const els = document.querySelectorAll("*");
-            els.forEach((el) => {
-              try {
-                // namespaced attribute to avoid collisions with page
-                const dataAttr = "data-gfgfc-original-font-size";
-                let original = el.getAttribute(dataAttr);
-                if (!original) {
-                  // store the computed original size once
-                  const comp = window.getComputedStyle(el).fontSize || "";
-                  el.setAttribute(dataAttr, comp);
-                  original = comp;
+      if (!isNaN(selectedFontSize)) {
+        if (selectedFontSize === 0) {
+          // A delta of 0 explicitly means: restore original sizes (reset)
+          // Use the same logic as resetFontSizeOnTab so that applying +0
+          // will set elements back to their original sizes and remove
+          // the namespaced data attribute.
+          resetFontSizeOnTab(tabId);
+        } else {
+          chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            func: (delta) => {
+              const els = document.querySelectorAll("*");
+              els.forEach((el) => {
+                try {
+                  // namespaced attribute to avoid collisions with page
+                  const dataAttr = "data-gfgfc-original-font-size";
+                  let original = el.getAttribute(dataAttr);
+                  if (!original) {
+                    // store the computed original size once
+                    const comp = window.getComputedStyle(el).fontSize || "";
+                    el.setAttribute(dataAttr, comp);
+                    original = comp;
+                  }
+                  // Use the stored original as the baseline so applying is idempotent
+                  const origValue = parseFloat(original);
+                  if (!isNaN(origValue)) {
+                    el.style.fontSize = origValue + delta + "px";
+                  }
+                } catch (e) {
+                  // ignore errors on exotic elements
                 }
-                // Use the stored original as the baseline so applying is idempotent
-                const origValue = parseFloat(original);
-                if (!isNaN(origValue)) {
-                  el.style.fontSize = origValue + delta + "px";
-                }
-              } catch (e) {
-                // ignore errors on exotic elements
-              }
-            });
-          },
-          args: [selectedFontSize],
-        });
+              });
+            },
+            args: [selectedFontSize],
+          });
+        }
       }
     }
 
-    // apply scaling
+    // apply scaling (treat 1 as explicit reset)
     if (typeof cfg.scaling !== "undefined") {
       const scalingValue = Number(cfg.scaling);
-      if (!isNaN(scalingValue) && scalingValue !== 1) {
-        chrome.scripting.executeScript({
-          target: { tabId: tabId },
-          func: (scale) => {
-            const style = document.createElement("style");
-            style.id = "customScalingStyle";
-            style.innerHTML = `html { transform: scale(${scale}); transform-origin: 0 0; }`;
-            document.head.appendChild(style);
-          },
-          args: [scalingValue],
-        });
+      if (!isNaN(scalingValue)) {
+        if (scalingValue === 1) {
+          // 100% selected — explicitly remove any injected scaling style
+          resetScalingOnTab(tabId);
+        } else {
+          chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            func: (scale) => {
+              const style = document.createElement("style");
+              style.id = "customScalingStyle";
+              style.innerHTML = `html { transform: scale(${scale}); transform-origin: 0 0; }`;
+              document.head.appendChild(style);
+            },
+            args: [scalingValue],
+          });
+        }
       }
     }
   });
