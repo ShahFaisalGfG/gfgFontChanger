@@ -101,13 +101,22 @@ document.addEventListener("DOMContentLoaded", function () {
       } catch (e) {
         // special page or invalid URL; we'll just reload as a fallback
       }
+      // Instead of reloading, delete the stored font value and ask the background
+      // to run the font-reset routine for the active tab. This restores the
+      // original font rendering without a full reload.
       if (domain) {
         removeFontSettingsFromStorage(domain, function () {
-          // reload the tab so background re-applies remaining settings (or none)
-          chrome.tabs.reload(activeTab.id);
+          chrome.runtime.sendMessage({
+            action: "resetFontOnTab",
+            tabId: activeTab.id,
+          });
         });
       } else {
-        chrome.tabs.reload(activeTab.id);
+        // Fallback: still request the background to reset the active tab.
+        chrome.runtime.sendMessage({
+          action: "resetFontOnTab",
+          tabId: activeTab.id,
+        });
       }
     });
   });
@@ -122,13 +131,22 @@ document.addEventListener("DOMContentLoaded", function () {
         // Could be a special page (chrome://, about:, etc.). In that case just reload the tab.
       }
       // Remove fontSize only for this domain, then reload the page so changes take effect.
+      // Instead of reloading, delete the stored fontSize and ask the background
+      // to run the same reset routine used for applying +0. This restores
+      // original sizes without a full reload.
       if (domain) {
         removeFontSizeSettingsFromStorage(domain, function () {
-          chrome.tabs.reload(activeTab.id);
+          chrome.runtime.sendMessage({
+            action: "resetFontSizeOnTab",
+            tabId: activeTab.id,
+          });
         });
       } else {
-        // No domain parsed; just reload the tab as a fallback.
-        chrome.tabs.reload(activeTab.id);
+        // No domain parsed (special page). Still ask background to reset the tab.
+        chrome.runtime.sendMessage({
+          action: "resetFontSizeOnTab",
+          tabId: activeTab.id,
+        });
       }
     });
   });
@@ -142,12 +160,20 @@ document.addEventListener("DOMContentLoaded", function () {
       } catch (e) {
         // fallback for special pages
       }
+      // Remove scaling for the domain, then ask background to reset scaling
+      // on the active tab instead of reloading.
       if (domain) {
         removeScalingSettingsFromStorage(domain, function () {
-          chrome.tabs.reload(activeTab.id);
+          chrome.runtime.sendMessage({
+            action: "resetScalingOnTab",
+            tabId: activeTab.id,
+          });
         });
       } else {
-        chrome.tabs.reload(activeTab.id);
+        chrome.runtime.sendMessage({
+          action: "resetScalingOnTab",
+          tabId: activeTab.id,
+        });
       }
     });
   });
